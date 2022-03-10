@@ -16,6 +16,7 @@ from imageio import imsave
 from utils.utils import make_grid, save_image
 from tqdm import tqdm
 import cv2
+import sys
 
 # from utils.fid_score import calculate_fid_given_paths
 from utils.torch_fid_score import get_fid
@@ -51,6 +52,7 @@ def compute_gradient_penalty(D, real_samples, fake_samples, phi):
     alpha = torch.Tensor(np.random.random((real_samples.size(0), 1, 1, 1))).to(real_samples.get_device())
     # Get random interpolation between real and fake samples
     interpolates = (alpha * real_samples + ((1 - alpha) * fake_samples)).requires_grad_(True)
+    print(interpolates)
     d_interpolates = D(interpolates)
     fake = torch.ones([real_samples.shape[0], 1], requires_grad=False).to(real_samples.get_device())
     # Get gradient w.r.t. interpolates
@@ -82,21 +84,27 @@ def train(args, gen_net: nn.Module, dis_net: nn.Module, gen_optimizer, dis_optim
         
 
         # Adversarial ground truths
-        real_imgs = imgs.type(torch.cuda.FloatTensor).cuda(args.gpu, non_blocking=True)
+        # real_imgs = imgs.type(torch.cuda.FloatTensor).cuda(args.gpu, non_blocking=True)
 
+        # print(imgs[0])
+        # print(len(imgs))
+        real_tabular_num, real_tabular_cat = torch.tensor_split(imgs,[args.num_size], dim=1)
+        real_tabular_num = real_tabular_num.type(torch.cuda.FloatTensor).cuda(args.gpu, non_blocking=True)
+        real_tabular_cat = real_tabular_cat.type(torch.int).cuda(args.gpu, non_blocking=True)
+        # print(f"real_imgs : {real_imgs.shape}")
         # Sample noise as generator input
         z = torch.cuda.FloatTensor(np.random.normal(0, 1, (imgs.shape[0], args.latent_dim))).cuda(args.gpu, non_blocking=True)
-
+        # print(f"z : {z.shape}")
+        # sys.exit()
         # ---------------------
         #  Train Discriminator
         # ---------------------
-        
+        # print(real_tabular_num, real_tabular_cat)
+        real_validity = dis_net(real_tabular_num, real_tabular_cat)
+        fake_tabular_num, fake_tabular_cat = gen_net(z, epoch)
+        # assert fake_imgs.size() == real_imgs.size(), f"fake_imgs.size(): {fake_imgs.size()} real_imgs.size(): {real_imgs.size()}"
 
-        real_validity = dis_net(real_imgs)
-        fake_imgs = gen_net(z, epoch).detach()
-        assert fake_imgs.size() == real_imgs.size(), f"fake_imgs.size(): {fake_imgs.size()} real_imgs.size(): {real_imgs.size()}"
-
-        fake_validity = dis_net(fake_imgs)
+        fake_validity = dis_net(fake_tabular_num.detach(), fake_tabular_cat.detach())
 
         # cal loss
         if args.loss == 'hinge':
@@ -104,12 +112,14 @@ def train(args, gen_net: nn.Module, dis_net: nn.Module, gen_optimizer, dis_optim
             d_loss = torch.mean(nn.ReLU(inplace=True)(1.0 - real_validity)) + \
                     torch.mean(nn.ReLU(inplace=True)(1 + fake_validity))
         elif args.loss == 'standard':
-            real_label = torch.full((imgs.shape[0],), 1., dtype=torch.float, device=real_imgs.get_device())
-            fake_label = torch.full((imgs.shape[0],), 0., dtype=torch.float, device=real_imgs.get_device())
+            real_label = torch.full((imgs.shape[0],), 1., dtype=torch.float, device=real_tabular_num.get_device())
+            fake_label = torch.full((imgs.shape[0],), 0., dtype=torch.float, device=real_tabular_num.get_device())
             real_validity = nn.Sigmoid()(real_validity.view(-1))
             fake_validity = nn.Sigmoid()(fake_validity.view(-1))
             d_real_loss = nn.BCELoss()(real_validity, real_label)
             d_fake_loss = nn.BCELoss()(fake_validity, fake_label)
+            d_loss = d_real_loss + d_fake_loss
+
         elif args.loss == 'lsgan':
             if isinstance(fake_validity, list):
                 d_loss = 0
@@ -157,13 +167,13 @@ def train(args, gen_net: nn.Module, dis_net: nn.Module, gen_optimizer, dis_optim
             
             for accumulated_idx in range(args.g_accumulated_times):
                 gen_z = torch.cuda.FloatTensor(np.random.normal(0, 1, (args.gen_batch_size, args.latent_dim)))
-                gen_imgs = gen_net(gen_z, epoch)
-                fake_validity = dis_net(gen_imgs)
+                gen_tabular = gen_net(gen_z, epoch)
+                fake_validity = dis_net(gen_tabular[0], gen_tabular[1])
 
                 # cal loss
                 loss_lz = torch.tensor(0)
                 if args.loss == "standard":
-                    real_label = torch.full((args.gen_batch_size,), 1., dtype=torch.float, device=real_imgs.get_device())
+                    real_label = torch.full((args.gen_batch_size,), 1., dtype=torch.float, device=real_tabular_num.get_device())
                     fake_validity = nn.Sigmoid()(fake_validity.view(-1))
                     g_loss = nn.BCELoss()(fake_validity.view(-1), real_label)
                 if args.loss == "lsgan":
@@ -222,7 +232,7 @@ def train(args, gen_net: nn.Module, dis_net: nn.Module, gen_optimizer, dis_optim
 
         # verbose
         if gen_step and iter_idx % args.print_freq == 0 and args.rank == 0:
-            sample_imgs = torch.cat((gen_imgs[:16], real_imgs[:16]), dim=0)
+            # sample_imgs = torch.cat((gen_imgs[:16], real_imgs[:16]), dim=0)
 #             scale_factor = args.img_size // int(sample_imgs.size(3))
 #             sample_imgs = torch.nn.functional.interpolate(sample_imgs, scale_factor=2)
 #             img_grid = make_grid(sample_imgs, nrow=4, normalize=True, scale_each=True)
@@ -231,8 +241,8 @@ def train(args, gen_net: nn.Module, dis_net: nn.Module, gen_optimizer, dis_optim
             tqdm.write(
                 "[Epoch %d/%d] [Batch %d/%d] [D loss: %f] [G loss: %f] [ema: %f] " %
                 (epoch, args.max_epoch, iter_idx % len(train_loader), len(train_loader), d_loss.item(), g_loss.item(), ema_beta))
-            del gen_imgs
-            del real_imgs
+            del real_tabular_num, real_tabular_cat
+            del fake_tabular_num, fake_tabular_cat
             del fake_validity
             del real_validity
             del g_loss

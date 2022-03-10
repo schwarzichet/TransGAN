@@ -445,7 +445,7 @@ class Generator(nn.Module):
         for i in range(len(self.pos_embed)):
             trunc_normal_(self.pos_embed[i], std=.02)
         self.deconv = nn.Sequential(
-            nn.Conv2d(self.embed_dim//64, 3, 1, 1, 0)
+            nn.Conv2d(self.embed_dim, 1, 1, 1, 0)
         )
         
     def forward(self, z, epoch):
@@ -467,62 +467,62 @@ class Generator(nn.Module):
         H, W = self.bottom_width, self.bottom_width
         
         # embedding
-        embedding = self.embedding_transform(z).view(-1, self.bottom_width ** 2, self.embed_dim)
-        embedding = embedding + self.embed_pos.to(embedding.get_device())
+        # embedding = self.embedding_transform(z).view(-1, self.bottom_width ** 2, self.embed_dim)
+        # embedding = embedding + self.embed_pos.to(embedding.get_device())
         
         
-#         x = x + self.pos_embed[0].to(x.get_device())
-#         B = x.size()
-#         H, W = self.bottom_width, self.bottom_width
-#         x, _ = self.blocks_1(x, embedding)
+        # x = x + self.pos_embed[0].to(x.get_device())
+        # B = x.size()
+        # H, W = self.bottom_width, self.bottom_width
+        # x, _ = self.blocks_1(x, embedding)
         
-        x, H, W = bicubic_upsample(x, H, W)
-        x = x + self.pos_embed[1].to(x.get_device())
-        B, _, C = x.size()
-        x, _ = self.blocks_2(x, embedding)
+#         x, H, W = bicubic_upsample(x, H, W)
+#         x = x + self.pos_embed[1].to(x.get_device())
+#         B, _, C = x.size()
+#         x, _ = self.blocks_2(x, embedding)
         
-        x, H, W = bicubic_upsample(x, H, W)
-        x = x + self.pos_embed[2].to(x.get_device())
-        B, _, C = x.size()
-        x, _ = self.blocks_3(x, embedding)
+#         x, H, W = bicubic_upsample(x, H, W)
+#         x = x + self.pos_embed[2].to(x.get_device())
+#         B, _, C = x.size()
+#         x, _ = self.blocks_3(x, embedding)
         
 #         x, H, W = updown(x, H, W)
         
-        x, H, W = pixel_upsample(x, H, W)
-        x = x + self.pos_embed[3].to(x.get_device())
-        B, _, C = x.size()
-#         x = x.view(B, H, W, C)
-#         x = window_partition(x, self.window_size)
-#         x = x.view(-1, self.window_size*self.window_size, C)
-        x, _ = self.blocks_4(x, embedding)
-#         x = x.view(-1, self.window_size, self.window_size, C)
-#         x = window_reverse(x, self.window_size, H, W).view(B,H*W,C)
+#         x, H, W = pixel_upsample(x, H, W)
+#         x = x + self.pos_embed[3].to(x.get_device())
+#         B, _, C = x.size()
+# #         x = x.view(B, H, W, C)
+# #         x = window_partition(x, self.window_size)
+# #         x = x.view(-1, self.window_size*self.window_size, C)
+#         x, _ = self.blocks_4(x, embedding)
+# #         x = x.view(-1, self.window_size, self.window_size, C)
+# #         x = window_reverse(x, self.window_size, H, W).view(B,H*W,C)
         
-        x, H, W = updown(x, H, W)
+#         x, H, W = updown(x, H, W)
         
-        x, H, W = pixel_upsample(x, H, W)
-        x = x + self.pos_embed[4].to(x.get_device())
-        B, _, C = x.size()
-#         x = x.view(B, H, W, C)
-#         x = window_partition(x, self.window_size)
-#         x = x.view(-1, self.window_size*self.window_size, C)
-        x, _ = self.blocks_5(x, embedding)
-#         x = x.view(-1, self.window_size, self.window_size, C)
-#         x = window_reverse(x, self.window_size, H, W).view(B,H*W,C)
+#         x, H, W = pixel_upsample(x, H, W)
+#         x = x + self.pos_embed[4].to(x.get_device())
+#         B, _, C = x.size()
+# #         x = x.view(B, H, W, C)
+# #         x = window_partition(x, self.window_size)
+# #         x = x.view(-1, self.window_size*self.window_size, C)
+#         x, _ = self.blocks_5(x, embedding)
+# #         x = x.view(-1, self.window_size, self.window_size, C)
+# #         x = window_reverse(x, self.window_size, H, W).view(B,H*W,C)
         
-        x, H, W = updown(x, H, W)
+#         x, H, W = updown(x, H, W)
         
-        x, H, W = pixel_upsample(x, H, W)
-        x = x + self.pos_embed[5].to(x.get_device())
-        B, _, C = x.size()
-#         x = x.view(B, H, W, C)
-#         x = window_partition(x, self.window_size)
-#         x = x.view(-1, self.window_size*self.window_size, C)
-        x, _ = self.blocks_6(x, embedding)
+#         x, H, W = pixel_upsample(x, H, W)
+#         x = x + self.pos_embed[5].to(x.get_device())
+#         B, _, C = x.size()
+# #         x = x.view(B, H, W, C)
+# #         x = window_partition(x, self.window_size)
+# #         x = x.view(-1, self.window_size*self.window_size, C)
+#         x, _ = self.blocks_6(x, embedding)
 #         x = x.view(-1, self.window_size, self.window_size, C)
 #         x = window_reverse(x, self.window_size, H, W).view(B,H,W,C).permute(0,3,1,2)
-        
-        x = x.permute(0,2,1).view(B, C, 256, 256)
+        B, _, C = x.size()
+        x = x.permute(0,2,1).view(B, C, 8, 8)
         output = self.deconv(x)
         return output
     

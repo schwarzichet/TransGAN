@@ -435,19 +435,21 @@ class Discriminator(nn.Module):
         self.patch_size = patch_size = args.patch_size
         norm_layer = args.d_norm
         self.window_size = args.d_window_size
+
+        in_chans = args.channels
         
         act_layer = args.d_act
         if patch_size != 6:
-            self.fRGB_1 = nn.Conv2d(3, embed_dim//4, kernel_size=patch_size*2, stride=patch_size, padding=patch_size//2)
-            self.fRGB_2 = nn.Conv2d(3, embed_dim//4, kernel_size=patch_size*2, stride=patch_size*2, padding=0)
-            self.fRGB_3 = nn.Conv2d(3, embed_dim//2, kernel_size=patch_size*4, stride=patch_size*4, padding=0)
+            self.fRGB_1 = nn.Conv2d(in_chans, embed_dim//4, kernel_size=patch_size*2, stride=patch_size, padding=patch_size//2)
+            self.fRGB_2 = nn.Conv2d(in_chans, embed_dim//4, kernel_size=patch_size*2, stride=patch_size*2, padding=0)
+            self.fRGB_3 = nn.Conv2d(in_chans, embed_dim//2, kernel_size=patch_size*4, stride=patch_size*4, padding=0)
             num_patches_1 = (args.img_size // patch_size)**2
             num_patches_2 = ((args.img_size//2) // patch_size)**2
             num_patches_3 = ((args.img_size//4) // patch_size)**2
         else:
-            self.fRGB_1 = nn.Conv2d(3, embed_dim//4, kernel_size=6, stride=4, padding=1)
-            self.fRGB_2 = nn.Conv2d(3, embed_dim//4, kernel_size=10, stride=8, padding=1)
-            self.fRGB_3 = nn.Conv2d(3, embed_dim//2, kernel_size=18, stride=16, padding=1)
+            self.fRGB_1 = nn.Conv2d(in_chans, embed_dim//4, kernel_size=6, stride=4, padding=1)
+            self.fRGB_2 = nn.Conv2d(in_chans, embed_dim//4, kernel_size=10, stride=8, padding=1)
+            self.fRGB_3 = nn.Conv2d(in_chans, embed_dim//2, kernel_size=18, stride=16, padding=1)
             num_patches_1 = (args.img_size // patch_size)**2
             num_patches_2 = ((args.img_size//2) // patch_size)**2
             num_patches_3 = ((args.img_size//4) // patch_size)**2
