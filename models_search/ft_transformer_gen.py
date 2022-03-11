@@ -1,9 +1,3 @@
-from audioop import bias
-import enum
-from random import random
-import sys
-from turtle import forward
-import xdrlib
 import torch.nn as nn
 from rtdl import MultiheadAttention
 import torch.nn.functional as F
@@ -100,19 +94,9 @@ class Generator(nn.Module):
         x_cats = [F.gumbel_softmax(x, 1, hard=True) for x in x_cats]
         x_cats_padding = []
 
-
-
         for i, t in enumerate(x_cats):
             x_cats_padding.append(
-                nn.ZeroPad2d((sum(self.cats[:i]), sum(self.cats[i+1:]), 0, 0))(t)
+                nn.ZeroPad2d((sum(self.cats[:i]), sum(self.cats[i + 1 :]), 0, 0))(t)
             )
-
-        # for i in x_cats_padding:
-        #     print(i)
-        #     print(i.shape)
-        # print(x_cats_padding[0].shape)
-        # print(torch.stack(x_cats_padding, dim=1).shape)
-
-        # sys.exit()
 
         return x_num, torch.stack(x_cats_padding, dim=1)

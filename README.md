@@ -1,46 +1,37 @@
-# TransGAN: Two Pure Transformers Can Make One Strong GAN, and That Can Scale Up
-Code used for [TransGAN: Two Pure Transformers Can Make One Strong GAN, and That Can Scale Up](https://arxiv.org/abs/2102.07074). 
+# TransGAN for tabular data
 
-## Implementation
-- [ ] checkpoint gradient using torch.utils.checkpoint
-- [ ] 16bit precision training
-- [x] Distributed Training (Faster!)
-- [x] IS/FID Evaluation
-- [x] Gradient Accumulation
-- [x] Stronger Data Augmentation
-- [x] Self-Modulation
+code to immigrate TransGAN for tabular data
 
-## Guidance
-#### Cifar training script
+## install
+
+install transgan's dependency
+
+install sdv from https://github.com/sdv-dev/CTGAN
+
+install SDGym from https://github.com/sdv-dev/SDGym
+
+install rtdl from https://github.com/Yura52/rtdl
+
+
+## Before Testing
+go to rtdl's `modules.py` find `class CategoricalFeatureTokenizer` replace its `forward` methods as
 ```
-python exp/cifar_train.py
-```
-#### Cifar test
-First download the [cifar checkpoint](https://drive.google.com/drive/folders/1UEBGHyuDHqr0VzOE9ePx5kZX0zbLqWLh?usp=sharing) and put it on `./cifar_checkpoint`. Then run the following script.
-```
-python exp/cifar_test.py
+def forward(self, x: Tensor) -> Tensor:
+    if x[0][0].dtype == torch.int:
+        x = self.embeddings(x + self.category_offsets[None])
+    else:
+        x = x@self.embeddings.weight
+
+    if self.bias is not None:
+        x = x + self.bias[None]
+    return x
 ```
 
-## Main Pipeline
-![Main Pipeline](assets/TransGAN_1.png)
+## Training
+python exp/ft_train_adult.py
 
-## Representative Visual Results
-![Cifar Visual Results](assets/cifar_visual.png)
-![Visual Results](assets/teaser_examples.jpg)
+## Generate samples
+python exp/ft_test_adult.py
 
-
-README waits for updated
-## Acknowledgement
-Codebase from [AutoGAN](https://github.com/VITA-Group/AutoGAN), [pytorch-image-models](https://github.com/rwightman/pytorch-image-models)
-
-## Citation
-if you find this repo is helpful, please cite
-```
-@article{jiang2021transgan,
-  title={Transgan: Two pure transformers can make one strong gan, and that can scale up},
-  author={Jiang, Yifan and Chang, Shiyu and Wang, Zhangyang},
-  journal={Advances in Neural Information Processing Systems},
-  volume={34},
-  year={2021}
-}
-```
+## Test results
+python test_adult_results.py

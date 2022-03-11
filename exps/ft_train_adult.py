@@ -53,4 +53,4 @@ os.system(f"CUDA_VISIBLE_DEVICES=0,1,2,3 python train_derived.py \
 --ema_kimg 500 \
 --ema_warmup 0.1 \
 --ema 0.9999 \
---exp_name ft_train")
+--exp_name ft_train_adult")

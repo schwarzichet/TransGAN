@@ -50,5 +50,5 @@ os.system(f"CUDA_VISIBLE_DEVICES=0,1,2,3 python test.py \
 --ema_kimg 500 \
 --ema_warmup 0.1 \
 --ema 0.9999 \
---load_path  /home/fjd5166/tabular/transgan/TransGAN/logs/ft_train_2022_03_03_20_21_27/Model/checkpoint \
+--load_path  ./checkpoint \
 --exp_name ft_test")
